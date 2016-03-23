@@ -1,0 +1,116 @@
+//With this, the relay would be connected to GND and Pin 13
+//RFID TX connected to Pin 2
+
+long interval = 1000; //How long the switch will be pulled
+int ledPin =  13;    // LED/relay connected to digital pin 13
+
+#include <SoftwareSerial.h>
+
+// include the library code:
+#include <LiquidCrystal.h>
+#include <Wire.h> 
+ 
+#define REDLITE 3
+#define GREENLITE 5
+#define BLUELITE 6
+//
+
+// initialize the library with the numbers of the interface pins
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+ 
+// you can change the overall brightness by range 0 -> 255
+int brightness = 255;
+//
+ 
+SoftwareSerial rfidSerial(2, 3); // (RX, TX)
+String myTag, myTagClean;
+ 
+void setup(){
+  //Setup the pin output to 5v
+  pinMode(ledPin, OUTPUT);
+  
+  // set up the LCD's number of rows and columns: 
+  lcd.begin(20, 4);
+  // Print a message to the LCD.
+  //lcd.print("RGB 16x2 Display  ");
+  //lcd.setCursor(0,1);
+  //lcd.print(" Multicolor LCD ");
+ 
+  brightness = 100;
+  //
+ 
+  // set the data rate for the NewSoftSerial port
+  rfidSerial.begin(9600); // communication speed of ID-12 reader
+  //rfidSerial.println("Hello World : RFID reader, from software serial");
+  //lcd.setCursor(0,1);
+  lcd.print("RFID reader");
+  lcd.setCursor(0,2);
+  lcd.print("  ... waiting ...");
+ 
+  // just some random println tests
+  //Serial.println("lorem");
+  //Serial.println(13, BYTE);
+  //Serial.println("lorem");
+ 
+}
+ 
+void loop(){
+  
+  // read serial if available
+  if (rfidSerial.available()) {
+ 
+    // read and cast to char incoming data
+    char incoming = (char)rfidSerial.read(); 
+ 
+    //Serial.print("receiving " );
+    //Serial.print(incoming);
+    //Serial.print("  => ");
+    //Serial.print(incoming, DEC);
+    //Serial.println(' '); // Serial.print(10, BYTE);
+ 
+    // packet structure, see ID-12 datasheet
+    // STX A B C D E F G H I J CR LF ETX
+    //   2 - - - - - - - - - - 13 10 3
+ 
+    // if I read the final delimiter
+    if(incoming == 3){
+ 
+      Serial.println("Incoming Tag");
+      //Serial.println(myTag);
+      //Serial.println(myTag.length());
+ 
+      // clean up String
+      // we skip the first char, and take the following 12 chars
+      myTagClean = myTag.substring(1, 13);
+ 
+      // reset myTag
+      myTag = "";      
+ 
+      lcd.clear();
+      lcd.print("Card# ");
+      //lcd.setCursor(0,1);
+      lcd.print(myTagClean);
+ 
+      // test and compare
+      //This if clause checks for static RFID card numbers
+      //This currently checks for three, but you can add or delete if you only want to check one, or more than three
+      //Rerplace TagNumber with your RFID ID number example: 55558DB64A56
+      if(myTagClean == "TagNumber" || "TagNumber" || "TagNumber"){
+        lcd.setCursor(0,2);
+        lcd.print("Open says-a-me");
+        lcd.setCursor(0,3);
+        digitalWrite(ledPin, HIGH);   // set the LED/relay on
+        delay(interval);			// wait the amount of time you set in the interval
+        digitalWrite(ledPin, LOW);   // set the LED/relay off
+      }
+ 
+    }
+ 
+    // standard char, we add it to the String
+    else{
+      myTag = String (myTag + incoming);
+    }
+  
+  }
+ 
+}
